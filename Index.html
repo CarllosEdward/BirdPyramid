@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pirâmide de Bird - Calculadora de Probabilidades</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .piramide { display: flex; justify-content: space-around; margin: 20px 0; }
+        .nivel { text-align: center; background: #f0f0f0; padding: 10px; border-radius: 5px; width: 150px; }
+        .topo { background: #ff6b6b; color: white; }
+        .base { background: #4ecdc4; }
+        input[type="number"], input[type="range"] { width: 100%; margin: 5px 0; }
+        #resultados { margin-top: 20px; border: 1px solid #ddd; padding: 15px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>Pirâmide de Bird: Calculadora de Probabilidades</h1>
+    <p>Insira valores em cada camada (ou use sliders). Baseado em ratios 1:10:30:600. Calcula probs condicionais via modelo Poisson.</p>
+    
+    <div class="piramide">
+        <div class="nivel topo">
+            <label>Grave (N1)</label><br>
+            <input type="number" id="N1" min="0" value="1"><br>
+            <input type="range" id="sliderN1" min="0" max="100" value="1" oninput="updateN1()">
+        </div>
+        <div class="nivel">
+            <label>Menor (N2)</label><br>
+            <input type="number" id="N2" min="0" value="10"><br>
+            <input type="range" id="sliderN2" min="0" max="100" value="10" oninput="updateN2()">
+        </div>
+        <div class="nivel">
+            <label>Dano (N3)</label><br>
+            <input type="number" id="N3" min="0" value="30"><br>
+            <input type="range" id="sliderN3" min="0" max="100" value="30" oninput="updateN3()">
+        </div>
+        <div class="nivel base">
+            <label>Near Miss (N4)</label><br>
+            <input type="number" id="N4" min="0" value="600"><br>
+            <input type="range" id="sliderN4" min="0" max="1000" value="600" oninput="updateN4()">
+        </div>
+    </div>
+    
+    <button onclick="calcular()">Calcular Probabilidades</button>
+    
+    <div id="resultados"></div>
+
+    <script>
+        function updateN1() { document.getElementById('N1').value = document.getElementById('sliderN1').value; calcular(); }
+        function updateN2() { document.getElementById('N2').value = document.getElementById('sliderN2').value; calcular(); }
+        function updateN3() { document.getElementById('N3').value = document.getElementById('sliderN3').value; calcular(); }
+        function updateN4() { document.getElementById('N4').value = document.getElementById('sliderN4').value; calcular(); }
+        
+        function calcular() {
+            const N4 = parseFloat(document.getElementById('N4').value) || 0;
+            const N3 = parseFloat(document.getElementById('N3').value) || 0;
+            const N2 = parseFloat(document.getElementById('N2').value) || 0;
+            const N1 = parseFloat(document.getElementById('N1').value) || 0;
+            
+            // Razões cumulativas
+            const ratio14 = 600, ratio24 = 60, ratio34 = 20;
+            
+            const lambda1 = N4 / ratio14;
+            const lambda2 = N4 / ratio24;
+            const lambda3 = N4 / ratio34;
+            const lambda4 = N4;
+            
+            // Probs Poisson: P(>=1) = 1 - exp(-lambda)
+            const p1 = 1 - Math.exp(-lambda1);
+            const p2 = 1 - Math.exp(-lambda2);
+            const p3 = 1 - Math.exp(-lambda3);
+            const p4 = 1 - Math.exp(-lambda4);
+            
+            // Mismatches
+            const mismatch1 = N1 ? Math.abs((N1 - lambda1) / lambda1 * 100) : 0;
+            const mismatch2 = N2 ? Math.abs((N2 - lambda2) / lambda2 * 100) : 0;
+            const mismatch3 = N3 ? Math.abs((N3 - lambda3) / lambda3 * 100) : 0;
+            
+            // Tabela de resultados
+            let tabela = `
+                <h2>Resultados</h2>
+                <table>
+                    <tr><th>Nível</th><th>Observado</th><th>Esperado (de N4)</th><th>Prob (>=1 | N4)</th><th>Mismatch (%)</th></tr>
+                    <tr><td>Grave (N1)</td><td>\( {N1}</td><td> \){lambda1.toFixed(2)}</td><td>\( {(p1*100).toFixed(2)}%</td><td> \){mismatch1.toFixed(2)}%</td></tr>
+                    <tr><td>Menor (N2)</td><td>\( {N2}</td><td> \){lambda2.toFixed(2)}</td><td>\( {(p2*100).toFixed(2)}%</td><td> \){mismatch2.toFixed(2)}%</td></tr>
+                    <tr><td>Dano (N3)</td><td>\( {N3}</td><td> \){lambda3.toFixed(2)}</td><td>\( {(p3*100).toFixed(2)}%</td><td> \){mismatch3.toFixed(2)}%</td></tr>
+                    <tr><td>Near Miss (N4)</td><td>\( {N4}</td><td> \){lambda4.toFixed(2)}</td><td>${(p4*100).toFixed(2)}%</td><td>-</td></tr>
+                </table>
+                <p><strong>Interpretação:</strong> Probs indicam chance de pelo menos 1 evento no nível dado N4. Mismatch alto sugere desvios da pirâmide padrão.</p>
+            `;
+            document.getElementById('resultados').innerHTML = tabela;
+        }
+        
+        // Calcula inicial
+        calcular();
+    </script>
+</body>
+</html>
